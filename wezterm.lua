@@ -131,6 +131,7 @@ config.keys = {
         { id = "", label = "  ALT+SHIFT+C           Launch Claude Code (profile picker)" },
         { id = "", label = "  ALT+Arrows            Move focus between panes" },
         { id = "", label = "  CTRL+SHIFT+Arrows     Resize pane" },
+        { id = "", label = "  ALT+SHIFT+S           Swap pane (label overlay, press letter to swap)" },
         { id = "", label = "  ALT+Enter             Zoom/unzoom pane" },
         { id = "", label = "  ALT+X                 Close pane" },
         { id = "", label = "── TABS ──────────────────────────────────────" },
@@ -170,6 +171,8 @@ config.keys = {
   { key = 'RightArrow', mods = 'SHIFT|CTRL', action = act.AdjustPaneSize{ 'Right', 1 } },
   { key = 'UpArrow', mods = 'SHIFT|CTRL', action = act.AdjustPaneSize{ 'Up', 1 } },
   { key = 'DownArrow', mods = 'SHIFT|CTRL', action = act.AdjustPaneSize{ 'Down', 1 } },
+  -- Pane Swap (shows label overlay, press a letter to swap active pane with that pane)
+  { key = 's', mods = 'SHIFT|ALT', action = act.PaneSelect { mode = "SwapWithActive" } },
 
   -- Launch Claude Code in a right split, prompting for profile if claude-profile is installed
   {
