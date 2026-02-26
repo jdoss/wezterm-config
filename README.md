@@ -123,6 +123,8 @@ Requires shell integration (OSC 133) for prompt-based scrolling. Automatically a
 | `CTRL+SHIFT+←/→/↑/↓` | Resize current pane in that direction (1 cell per press) |
 | `ALT+Enter` | Zoom/unzoom current pane (temporarily maximize) |
 | `ALT+X` | Close current pane (with confirmation prompt) |
+| `ALT+SHIFT+S` | Swap pane — shows label overlay, press a letter to swap active pane with that pane |
+| `ALT+SHIFT+M` | Move active pane into a new tab |
 
 ### Tabs
 
