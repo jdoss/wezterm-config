@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Asks WezTerm for a new Claude Code tab in its current window. This sets the claude_tab user
+# var on WezTerm's focused pane by writing the escape sequence to the pane's tty, which
+# WezTerm reads and the pane's program never sees. claude.lua then asks there for the
+# directory (and sandbox or host) and opens the tab.
+#
+# Usage: claude-tab <profile>
+set -euo pipefail
+
+if [[ $# -ne 1 ]]; then
+  echo "usage: claude-tab <profile>" >&2
+  exit 2
+fi
+profile=$1
+cli=(wezterm cli --no-auto-start)
+
+if ! clients=$("${cli[@]}" list-clients --format json); then
+  echo "claude-tab: can't reach WezTerm; is it running?" >&2
+  exit 1
+fi
+pane=$(jq -r 'min_by(.idle_time.secs) | .focused_pane_id // empty' <<<"$clients")
+if [[ -z $pane ]]; then
+  echo "claude-tab: no WezTerm pane has focus" >&2
+  exit 1
+fi
+tty=$("${cli[@]}" list --format json |
+  jq -r --argjson pane "$pane" '.[] | select(.pane_id == $pane) | .tty_name // empty')
+if [[ -z $tty ]]; then
+  echo "claude-tab: WezTerm's pane $pane has no tty to write to" >&2
+  exit 1
+fi
+printf '\033]1337;SetUserVar=claude_tab=%s\007' "$(printf %s "$profile" | base64 -w0)" >"$tty"

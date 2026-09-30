@@ -55,20 +55,23 @@ Shell integration (OSC 133) is required for the directory to update correctly as
 
 ## Claude Code Integration
 
+[`claude.lua`](claude.lua) starts Claude Code sessions through [`claude-profile`](https://github.com/quickvm/claude-profile) in two ways: `ALT+SHIFT+C` next to the current pane, and `bin/claude-tab` from outside WezTerm. Both read the profiles in `~/.claude-profiles/` each time, so new profiles show up without config changes.
+
+For profiles with a `.sandbox` marker (`claude-profile sandbox <name> --on`), both then ask **Sandbox or host**. The answer sets `CLAUDE_PROFILE_SANDBOX` for that launch only, so the profile's default stays as it is. Profiles without a marker aren't asked. Esc at any step cancels without opening anything.
+
+Sessions run `claude-profile <profile>` in an interactive login shell (`bash -lic`), like a new tab's, so the `CLAUDE_PROFILE_*` settings in `~/.bashrc` apply.
+
 ### Profile Launcher (`ALT+SHIFT+C`)
 
-Splits the current pane 40% to the right and launches Claude Code in the new pane. A fuzzy-searchable profile picker appears first, reading available profiles dynamically from `~/.claude-profiles/`. New profiles added to that directory appear automatically without any config changes.
+Picks a profile from a fuzzy list and asks sandbox or host if the profile has a sandbox. It then splits the current pane 40% to the right and starts the session there, in the current pane's directory. If `claude-profile` isn't installed, the pane splits immediately and launches `claude` directly.
 
-If [`claude-profile`](https://github.com/quickvm/claude-profile) is installed, a fuzzy profile picker appears before splitting. If it is not installed, the pane splits immediately and launches `claude` directly.
+### New tab from outside WezTerm (`bin/claude-tab`)
 
-When `claude-profile` is present, profiles are launched via:
-```
-claude-profile <profile-name>
-```
+`bin/claude-tab <profile>` opens a new Claude Code tab in the current window from anywhere else, such as a Stream Deck key (deckbro's Personal and Work keys run it) or a desktop shortcut.
 
-### `get_claude_profiles()` function
+It asks for the directory first. The fuzzy list starts with the directories the profile has run sessions in, most recently started first (from the profile's `.claude.json`), then every git repository one and two levels under `~/src`. **Other directory…** at the bottom takes any path.
 
-Reads `~/.claude-profiles/*/` at invocation time and builds the list of choices for the profile picker `InputSelector`. This runs each time you press the keybinding, not at startup.
+The script sets the `claude_tab` [user var](https://wezterm.org/config/lua/window-events/user-var-changed.html) on WezTerm's focused pane by writing its escape sequence to that pane's tty. WezTerm reads it, and the program in the pane never sees it. `claude.on_user_var_changed` handles it. The script needs `jq`.
 
 ## Keybindings
 
@@ -118,7 +121,7 @@ Requires shell integration (OSC 133) for prompt-based scrolling. Automatically a
 |---|---|
 | `ALT+D` | Split current pane vertically (top/bottom) |
 | `ALT+C` | Split current pane horizontally (left/right) |
-| `ALT+SHIFT+C` | Launch Claude Code in a right split with profile picker |
+| `ALT+SHIFT+C` | Launch Claude Code in a right split: pick a profile, then sandbox or host if it has a sandbox |
 | `ALT+←/→/↑/↓` | Move focus to the pane in that direction |
 | `CTRL+SHIFT+←/→/↑/↓` | Resize current pane in that direction (1 cell per press) |
 | `ALT+Enter` | Zoom/unzoom current pane (temporarily maximize) |

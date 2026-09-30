@@ -80,18 +80,10 @@ config.window_frame = {
 }
 
 
--- Reads profile names from ~/.claude-profiles/ at invocation time
-local function get_claude_profiles()
-  local choices = {}
-  local dirs = wezterm.glob(wezterm.home_dir .. "/.claude-profiles/*/")
-  for _, dir in ipairs(dirs) do
-    local name = dir:match("([^/]+)/?$")
-    if name then
-      table.insert(choices, { id = name, label = name })
-    end
-  end
-  return choices
-end
+-- Claude Code sessions through claude-profile (claude.lua): ALT+SHIFT+C below, and new tabs
+-- asked for from outside WezTerm with bin/claude-tab, such as by deckbro's keys.
+local claude = require "claude"
+wezterm.on("user-var-changed", claude.on_user_var_changed)
 
 -- Keys
 config.disable_default_key_bindings = true
@@ -128,7 +120,7 @@ config.keys = {
         { id = "", label = "── PANES ─────────────────────────────────────" },
         { id = "", label = "  ALT+D                 Split pane vertically" },
         { id = "", label = "  ALT+C                 Split pane horizontally" },
-        { id = "", label = "  ALT+SHIFT+C           Launch Claude Code (profile picker)" },
+        { id = "", label = "  ALT+SHIFT+C           Launch Claude Code (profile, sandbox?)" },
         { id = "", label = "  ALT+Arrows            Move focus between panes" },
         { id = "", label = "  CTRL+SHIFT+Arrows     Resize pane" },
         { id = "", label = "  ALT+SHIFT+S           Swap pane (label overlay, press letter to swap)" },
@@ -177,45 +169,9 @@ config.keys = {
   -- Move active pane into a new tab
   { key = 'm', mods = 'SHIFT|ALT', action = act.PaneSelect { mode = "MoveToNewTab" } },
 
-  -- Launch Claude Code in a right split, prompting for profile if claude-profile is installed
-  {
-    key = 'C',
-    mods = 'ALT|SHIFT',
-    action = wezterm.action_callback(function(window, pane)
-      local has_claude_profile, _, _ = wezterm.run_child_process({ "which", "claude-profile" })
-      if has_claude_profile then
-        window:perform_action(
-          act.InputSelector {
-            title = "Claude Profile",
-            choices = get_claude_profiles(),
-            fuzzy = true,
-            action = wezterm.action_callback(function(inner_window, inner_pane, id, _)
-              if id then
-                inner_window:perform_action(
-                  act.SplitPane {
-                    direction = "Right",
-                    command = { args = { "bash", "-lc", "claude-profile " .. id } },
-                    size = { Percent = 40 },
-                  },
-                  inner_pane
-                )
-              end
-            end),
-          },
-          pane
-        )
-      else
-        window:perform_action(
-          act.SplitPane {
-            direction = "Right",
-            command = { args = { "bash", "-lc", "claude" } },
-            size = { Percent = 40 },
-          },
-          pane
-        )
-      end
-    end),
-  },
+  -- Launch Claude Code in a right split, asking for the profile, and sandbox or host for
+  -- profiles with a sandbox
+  { key = 'C', mods = 'ALT|SHIFT', action = wezterm.action_callback(claude.split) },
 
   -- Close current pane
   { key = 'x', mods = 'ALT', action = act.CloseCurrentPane { confirm = true } },
