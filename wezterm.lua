@@ -2,6 +2,11 @@ local wezterm = require "wezterm"
 local act = wezterm.action
 local config = wezterm.config_builder()
 
+-- macOS lays out text at 72 dpi and Linux at 96, so a Mac needs 4/3 the point size to draw
+-- the same pixels.
+local is_macos = wezterm.target_triple:find "darwin" ~= nil
+local font_size = is_macos and 16.0 or 12.0
+
 -- Misc config
 config.initial_cols = 160
 config.initial_rows = 48
@@ -15,7 +20,7 @@ config.switch_to_last_active_tab_when_closing_tab = true
 config.tab_max_width = 25
 config.pane_focus_follows_mouse = false
 config.swallow_mouse_click_on_pane_focus = true
-config.enable_wayland = false
+config.enable_wayland = true
 config.hyperlink_rules = wezterm.default_hyperlink_rules()
 config.hide_mouse_cursor_when_typing = true
 -- config.front_end = "WebGpu"
@@ -25,11 +30,19 @@ config.enable_kitty_keyboard = true      -- Better key reporting for TUIs
 config.enable_csi_u_key_encoding = false -- Disable CSI u to avoid escape sequences for modified keys
 config.scrollback_lines = 10000          -- More scrollback for long sessions
 
--- RESIZE without TITLE removes the title bar on GNOME.
-config.window_decorations="RESIZE"
--- config.integrated_title_buttons = { 'Hide', 'Maximize', 'Close' }
--- config.window_decorations="TITLE|RESIZE"
--- integrated_title_button_style = "Gnome"
+-- Let COSMIC own all decorations — full SSD title bar with properly placed buttons. On macOS
+-- this is the native title bar.
+config.window_decorations = "TITLE|RESIZE"
+
+-- Workaround for wezterm #6318: on Wayland the window overflows the visible
+-- area when maximized/tiled, hiding the bottom row(s). Bottom padding of one
+-- cell gives wezterm fewer rows to render so the prompt stays in the viewport.
+config.window_padding = {
+  left = "1cell",
+  right = "1cell",
+  top = 0,
+  bottom = "1cell",
+}
 
 -- local window_min = ' 󰖰 '
 -- local window_max = ' 󰖯 '
@@ -54,9 +67,9 @@ config.colors = {
 
 -- Font
 -- wezterm ls-fonts --list-system
-config.font = wezterm.font("Source Code Pro", {weight="Regular", stretch="Normal", style="Normal"})
-config.font_size = 12.0
-config.line_height = 1
+config.font = wezterm.font("Berkeley Mono", {weight="Regular", stretch="Normal", style="Normal"})
+config.font_size = font_size
+config.line_height = 1.0
 config.window_frame = {
   -- The font used in the tab bar.
   -- Roboto Bold is the default; this font is bundled
@@ -68,7 +81,7 @@ config.window_frame = {
 
   -- The size of the font in the tab bar.
   -- Default to 10.0 on Windows but 12.0 on other systems
-  font_size = 12.0,
+  font_size = font_size,
 
   -- The overall background color of the tab bar when
   -- the window is focused
@@ -80,18 +93,10 @@ config.window_frame = {
 }
 
 
--- Reads profile names from ~/.claude-profiles/ at invocation time
-local function get_claude_profiles()
-  local choices = {}
-  local dirs = wezterm.glob(wezterm.home_dir .. "/.claude-profiles/*/")
-  for _, dir in ipairs(dirs) do
-    local name = dir:match("([^/]+)/?$")
-    if name then
-      table.insert(choices, { id = name, label = name })
-    end
-  end
-  return choices
-end
+-- Claude Code sessions through claude-profile (claude.lua): ALT+SHIFT+C below, and new tabs
+-- asked for from outside WezTerm with bin/claude-tab, such as by deckbro's keys.
+local claude = require "claude"
+wezterm.on("user-var-changed", claude.on_user_var_changed)
 
 -- Keys
 config.disable_default_key_bindings = true
@@ -121,6 +126,7 @@ config.keys = {
         { id = "", label = "── COPY & PASTE ──────────────────────────────" },
         { id = "", label = "  CTRL+SHIFT+C          Copy to clipboard" },
         { id = "", label = "  CTRL+SHIFT+V          Paste from clipboard" },
+        { id = "", label = "  CMD+C / CMD+V         Copy / paste (macOS)" },
         { id = "", label = "  ALT+S                 Quick select (paths, URLs, hashes)" },
         { id = "", label = "── SCROLL ────────────────────────────────────" },
         { id = "", label = "  SHIFT+Up/Down         Jump to prev/next shell prompt" },
@@ -128,7 +134,7 @@ config.keys = {
         { id = "", label = "── PANES ─────────────────────────────────────" },
         { id = "", label = "  ALT+D                 Split pane vertically" },
         { id = "", label = "  ALT+C                 Split pane horizontally" },
-        { id = "", label = "  ALT+SHIFT+C           Launch Claude Code (profile picker)" },
+        { id = "", label = "  ALT+SHIFT+C           Launch Claude Code (profile, sandbox?)" },
         { id = "", label = "  ALT+Arrows            Move focus between panes" },
         { id = "", label = "  CTRL+SHIFT+Arrows     Resize pane" },
         { id = "", label = "  ALT+SHIFT+S           Swap pane (label overlay, press letter to swap)" },
@@ -147,6 +153,38 @@ config.keys = {
         { id = "", label = "  ALT+SHIFT+E / Q       Next/previous workspace" },
         { id = "", label = "  ALT+SHIFT+T           New workspace" },
         { id = "", label = "  ALT+SHIFT+R           Rename workspace" },
+        { id = "", label = "── SHELL: COMPLETION ─────────────────────────" },
+        { id = "", label = "  TAB                   Accept next word of ghost suggestion" },
+        { id = "", label = "  RIGHT/END/CTRL+E      Accept full ghost suggestion" },
+        { id = "", label = "  ALT+I                 dabbrev-expand (complete from history/buffer)" },
+        { id = "", label = "  CTRL+T                fzf file picker (insert paths at cursor)" },
+        { id = "", label = "  CTRL+R                fzf history search" },
+        { id = "", label = "  ALT+G                 fzf cd into subdirectory" },
+        { id = "", label = "  **<TAB>               fzf completion trigger (e.g. vim **<TAB>)" },
+        { id = "", label = "── SHELL: EDITING ────────────────────────────" },
+        { id = "", label = "  UP / DOWN             Prefix-aware history search" },
+        { id = "", label = "  ESC                   Clear current input (discard-line)" },
+        { id = "", label = "  CTRL+X CTRL+E         Edit current command in $EDITOR" },
+        { id = "", label = "  ALT+BACKSPACE         Kill word backward (path-aware, breaks on /)" },
+        { id = "", label = "  CTRL+W                Kill word backward (to whitespace)" },
+        { id = "", label = "  ALT+H                 Kill word backward (alphanumeric word)" },
+        { id = "", label = "  ALT+F / ALT+B         Move forward / backward one word" },
+        { id = "", label = "  ALT+U                 Uppercase next word" },
+        { id = "", label = "  ALT+.                 Insert last argument from previous command" },
+        { id = "", label = "  ALT+Y                 Yank pop (cycle through paste history)" },
+        { id = "", label = "── SHELL: DIR STACK ──────────────────────────" },
+        { id = "", label = "  d<space>              List dir stack (sabbrev → dirs -v)" },
+        { id = "", label = "  ff<space>             fzf-pick from dir stack and cd (sabbrev)" },
+        { id = "", label = "  pushd <path>          cd and push current dir onto stack" },
+        { id = "", label = "  popd                  Pop top of stack (cd back one)" },
+        { id = "", label = "  cd ~N                 Jump to stack entry N (no removal)" },
+        { id = "", label = "── SHELL: FZF-GIT (in git repo) ──────────────" },
+        { id = "", label = "  CTRL+G CTRL+F         Pick files (modified/untracked)" },
+        { id = "", label = "  CTRL+G CTRL+B         Pick branches" },
+        { id = "", label = "  CTRL+G CTRL+T         Pick tags" },
+        { id = "", label = "  CTRL+G CTRL+H         Pick commit hashes" },
+        { id = "", label = "  CTRL+G CTRL+S         Pick stashes" },
+        { id = "", label = "  CTRL+G CTRL+W         Pick worktrees" },
       },
     },
   },
@@ -160,6 +198,7 @@ config.keys = {
 
   -- Misc
   { key = 'V', mods = 'SHIFT|CTRL', action = act.PasteFrom 'Clipboard' },
+  { key = 'Insert', mods = 'SHIFT', action = act.PasteFrom 'Clipboard' },
   { key = '0', mods= 'SUPER', action = act.ResetFontSize },
 
   -- Pane Movement
@@ -177,45 +216,9 @@ config.keys = {
   -- Move active pane into a new tab
   { key = 'm', mods = 'SHIFT|ALT', action = act.PaneSelect { mode = "MoveToNewTab" } },
 
-  -- Launch Claude Code in a right split, prompting for profile if claude-profile is installed
-  {
-    key = 'C',
-    mods = 'ALT|SHIFT',
-    action = wezterm.action_callback(function(window, pane)
-      local has_claude_profile, _, _ = wezterm.run_child_process({ "which", "claude-profile" })
-      if has_claude_profile then
-        window:perform_action(
-          act.InputSelector {
-            title = "Claude Profile",
-            choices = get_claude_profiles(),
-            fuzzy = true,
-            action = wezterm.action_callback(function(inner_window, inner_pane, id, _)
-              if id then
-                inner_window:perform_action(
-                  act.SplitPane {
-                    direction = "Right",
-                    command = { args = { "bash", "-lc", "claude-profile " .. id } },
-                    size = { Percent = 40 },
-                  },
-                  inner_pane
-                )
-              end
-            end),
-          },
-          pane
-        )
-      else
-        window:perform_action(
-          act.SplitPane {
-            direction = "Right",
-            command = { args = { "bash", "-lc", "claude" } },
-            size = { Percent = 40 },
-          },
-          pane
-        )
-      end
-    end),
-  },
+  -- Launch Claude Code in a right split, asking for the profile, and sandbox or host for
+  -- profiles with a sandbox
+  { key = 'C', mods = 'ALT|SHIFT', action = wezterm.action_callback(claude.split) },
 
   -- Close current pane
   { key = 'x', mods = 'ALT', action = act.CloseCurrentPane { confirm = true } },
@@ -359,6 +362,12 @@ config.keys = {
   { key = 'PageUp', mods = 'SHIFT', action = act.ScrollByPage(-1) },
   { key = 'PageDown', mods = 'SHIFT', action = act.ScrollByPage(1) },
 }
+
+-- Other macOS apps copy and paste with Cmd. CTRL+SHIFT+C and CTRL+SHIFT+V work there too.
+if is_macos then
+  table.insert(config.keys, { key = 'c', mods = 'SUPER', action = act.CopyTo 'Clipboard' })
+  table.insert(config.keys, { key = 'v', mods = 'SUPER', action = act.PasteFrom 'Clipboard' })
+end
 
 -- Mouse
 config.mouse_bindings = {
