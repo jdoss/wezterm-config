@@ -2,6 +2,11 @@ local wezterm = require "wezterm"
 local act = wezterm.action
 local config = wezterm.config_builder()
 
+-- macOS lays out text at 72 dpi and Linux at 96, so a Mac needs 4/3 the point size to draw
+-- the same pixels.
+local is_macos = wezterm.target_triple:find "darwin" ~= nil
+local font_size = is_macos and 16.0 or 12.0
+
 -- Misc config
 config.initial_cols = 160
 config.initial_rows = 48
@@ -25,7 +30,8 @@ config.enable_kitty_keyboard = true      -- Better key reporting for TUIs
 config.enable_csi_u_key_encoding = false -- Disable CSI u to avoid escape sequences for modified keys
 config.scrollback_lines = 10000          -- More scrollback for long sessions
 
--- Let COSMIC own all decorations — full SSD title bar with properly placed buttons.
+-- Let COSMIC own all decorations — full SSD title bar with properly placed buttons. On macOS
+-- this is the native title bar.
 config.window_decorations = "TITLE|RESIZE"
 
 -- Workaround for wezterm #6318: on Wayland the window overflows the visible
@@ -62,7 +68,7 @@ config.colors = {
 -- Font
 -- wezterm ls-fonts --list-system
 config.font = wezterm.font("Berkeley Mono", {weight="Regular", stretch="Normal", style="Normal"})
-config.font_size = 12.0
+config.font_size = font_size
 config.line_height = 1.0
 config.window_frame = {
   -- The font used in the tab bar.
@@ -75,7 +81,7 @@ config.window_frame = {
 
   -- The size of the font in the tab bar.
   -- Default to 10.0 on Windows but 12.0 on other systems
-  font_size = 12.0,
+  font_size = font_size,
 
   -- The overall background color of the tab bar when
   -- the window is focused
@@ -120,6 +126,7 @@ config.keys = {
         { id = "", label = "── COPY & PASTE ──────────────────────────────" },
         { id = "", label = "  CTRL+SHIFT+C          Copy to clipboard" },
         { id = "", label = "  CTRL+SHIFT+V          Paste from clipboard" },
+        { id = "", label = "  CMD+C / CMD+V         Copy / paste (macOS)" },
         { id = "", label = "  ALT+S                 Quick select (paths, URLs, hashes)" },
         { id = "", label = "── SCROLL ────────────────────────────────────" },
         { id = "", label = "  SHIFT+Up/Down         Jump to prev/next shell prompt" },
@@ -355,6 +362,12 @@ config.keys = {
   { key = 'PageUp', mods = 'SHIFT', action = act.ScrollByPage(-1) },
   { key = 'PageDown', mods = 'SHIFT', action = act.ScrollByPage(1) },
 }
+
+-- Other macOS apps copy and paste with Cmd. CTRL+SHIFT+C and CTRL+SHIFT+V work there too.
+if is_macos then
+  table.insert(config.keys, { key = 'c', mods = 'SUPER', action = act.CopyTo 'Clipboard' })
+  table.insert(config.keys, { key = 'v', mods = 'SUPER', action = act.PasteFrom 'Clipboard' })
+end
 
 -- Mouse
 config.mouse_bindings = {

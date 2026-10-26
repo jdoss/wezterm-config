@@ -1,6 +1,6 @@
 # WezTerm Config
 
-My personal WezTerm configuration for Fedora Workstation with GNOME, optimized for AI-assisted development workflows using [Claude Code](https://github.com/anthropics/claude-code) and [claude-profile](https://github.com/quickvm/claude-profile).
+My personal WezTerm configuration for Fedora Workstation with COSMIC, and for macOS, optimized for AI-assisted development workflows using [Claude Code](https://github.com/anthropics/claude-code) and [claude-profile](https://github.com/quickvm/claude-profile).
 
 ## General Settings
 
@@ -14,11 +14,12 @@ My personal WezTerm configuration for Fedora Workstation with GNOME, optimized f
 | `switch_to_last_active_tab_when_closing_tab` | true | Closes a tab and returns to where you were |
 | `pane_focus_follows_mouse` | false | Click to focus panes — mouse hover focus has an unfixed bug that causes panes to flash focus back and forth ([WezTerm issue #4484](https://github.com/wezterm/wezterm/issues/4484)) |
 | `swallow_mouse_click_on_pane_focus` | true | First click on an inactive pane focuses it without also passing the click to the app |
-| `enable_wayland` | false | Forces X11/XWayland — GNOME Wayland has open WezTerm crash bugs ([issue #6191](https://github.com/wezterm/wezterm/issues/6191)) |
+| `enable_wayland` | true | Runs natively on COSMIC's Wayland. macOS ignores it |
 | `hyperlink_rules` | defaults | Uses WezTerm's built-in URL detection rules |
 | `hide_mouse_cursor_when_typing` | true | Hides the mouse pointer while you type |
-| `check_for_updates` | false | Disabled — WezTerm is installed via RPM (nightly), the built-in updater can't update RPM packages |
-| `window_decorations` | `RESIZE` | Removes the title bar on GNOME. `RESIZE` without `TITLE` is what achieves this |
+| `check_for_updates` | false | Disabled — a package manager installs WezTerm nightly (the RPM on Fedora, Homebrew's `wezterm@nightly` cask on macOS), and the built-in updater can't update either |
+| `window_decorations` | `TITLE\|RESIZE` | COSMIC draws the whole title bar, buttons included. On macOS it's the native title bar |
+| `window_padding` | 1 cell left, right and bottom | Works around [wezterm #6318](https://github.com/wezterm/wezterm/issues/6318): on Wayland, a maximized or tiled window hides its last rows |
 
 ## TUI Compatibility
 
@@ -35,8 +36,8 @@ Settings tuned for running TUI applications like Claude Code and OpenCode inside
 - **Color scheme:** Nord
 - **Tab bar inactive edge:** `#575757` — slightly lighter divider between inactive tabs
 - **Tab bar background:** `#333333` (both focused and unfocused windows)
-- **Terminal font:** Source Code Pro Regular 12pt
-- **Tab bar font:** Roboto Bold 12pt (WezTerm default, explicitly set)
+- **Terminal font:** Berkeley Mono Regular, 12pt on Linux and 16pt on macOS (see [macOS](#macos))
+- **Tab bar font:** Roboto Bold at the same size (WezTerm default, explicitly set)
 - **Line height:** 1 (no extra spacing)
 
 To list fonts available on your system: `wezterm ls-fonts --list-system`
@@ -102,6 +103,8 @@ These ensure common key combinations reach TUI applications instead of being int
 |---|---|
 | `CTRL+SHIFT+C` | Copy selection to clipboard |
 | `CTRL+SHIFT+V` | Paste from clipboard |
+| `SHIFT+Insert` | Paste from clipboard |
+| `CMD+C` / `CMD+V` | Copy / paste, on macOS only |
 | `ALT+S` | Quick select — highlights paths, URLs, git hashes, and other patterns on screen. Press a letter to select. URLs open in the default browser and are also copied to clipboard. Everything else is copied to clipboard only. Trailing punctuation (`"`, `'`, `)`, `]`, etc.) is stripped from URLs before opening. |
 
 ### Scrolling
@@ -165,6 +168,26 @@ Workspaces are WezTerm's named session groups — each workspace has its own set
 `CTRL+Click` Down is bound to `Nop` to prevent the click-down event from being passed to the terminal application before the Up event fires.
 
 Left click Up is bound explicitly to `CompleteSelection` so that releasing the mouse button after a drag copies the selection, rather than triggering the default hyperlink behavior on single clicks.
+
+## macOS
+
+The same config runs on a Mac, with a few differences:
+
+- **Font size.** macOS lays out text at 72 dpi and Linux at 96, so the terminal and tab bar use
+  16pt on macOS, which draws the same pixels as 12pt on Linux.
+- **Copy and paste.** `CMD+C` and `CMD+V` work as in other macOS apps; `CTRL+SHIFT+C` and
+  `CTRL+SHIFT+V` still do.
+- **Alt.** WezTerm sends the left Option key as Alt by default, so every `ALT` binding and the
+  shell's Alt keys work unchanged.
+- **Claude Code.** `ALT+SHIFT+C` starts `/opt/homebrew/bin/bash`. Apps opened from the Dock get
+  PATH `/usr/bin:/bin:/usr/sbin:/sbin`, where `bash` is Apple's 3.2, too old for a bash 4+
+  `~/.bashrc`. Without `claude-profile`, it runs `claude` directly.
+- **Shell integration.** Prompt jumping (`SHIFT+Up`/`SHIFT+Down`) and the directory in the
+  right status need WezTerm's `wezterm.sh`. The Homebrew cask ships it in
+  `/Applications/WezTerm.app/Contents/Resources/wezterm.sh` without loading it, so source it
+  from `~/.bashrc`.
+- **Berkeley Mono** has to be installed, in `~/Library/Fonts`.
+- **`bin/claude-tab`** is for Linux: it uses GNU `base64 -w0`.
 
 ## License
 

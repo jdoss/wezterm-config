@@ -46,12 +46,16 @@ local function without_tilde(path)
   return path
 end
 
+-- On macOS, Homebrew's bash. Apps started from the Dock get PATH /usr/bin:/bin:/usr/sbin:/sbin,
+-- where bash is Apple's 3.2, too old for ~/.bashrc.
+local bash = wezterm.target_triple:find "darwin" and "/opt/homebrew/bin/bash" or "bash"
+
 -- An interactive login shell, like a new tab's, so the CLAUDE_PROFILE_* settings in
 -- ~/.bashrc apply. The command is one string because arguments after it would reach
 -- ~/.bashrc, where ble.sh reads them as its own options. Profile names are checked by
 -- is_profile first, so they are safe in it.
 local function in_login_shell(command)
-  return { "bash", "-lic", "exec " .. command }
+  return { bash, "-lic", "exec " .. command }
 end
 
 local function profile_choices()
