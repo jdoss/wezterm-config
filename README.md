@@ -16,7 +16,7 @@ My personal WezTerm configuration for Fedora Workstation with COSMIC, and for ma
 | `swallow_mouse_click_on_pane_focus` | true | First click on an inactive pane focuses it without also passing the click to the app |
 | `enable_wayland` | true | Runs natively on COSMIC's Wayland. macOS ignores it |
 | `hyperlink_rules` | defaults | Uses WezTerm's built-in URL detection rules |
-| `hide_mouse_cursor_when_typing` | true | Hides the mouse pointer while you type |
+| `hide_mouse_cursor_when_typing` | true on Linux, false on macOS | Hides the mouse pointer while you type, except on macOS (see [macOS](#macos)) |
 | `check_for_updates` | false | Disabled — a package manager installs WezTerm nightly (the RPM on Fedora, Homebrew's `wezterm@nightly` cask on macOS), and the built-in updater can't update either |
 | `window_decorations` | `TITLE\|RESIZE` | COSMIC draws the whole title bar, buttons included. On macOS it's the native title bar |
 | `window_padding` | 1 cell left, right and bottom | Works around [wezterm #6318](https://github.com/wezterm/wezterm/issues/6318): on Wayland, a maximized or tiled window hides its last rows |
@@ -186,6 +186,8 @@ The same config runs on a Mac, with a few differences:
   right status need WezTerm's `wezterm.sh`. The Homebrew cask ships it in
   `/Applications/WezTerm.app/Contents/Resources/wezterm.sh` without loading it, so source it
   from `~/.bashrc`.
+- **The pointer stays while you type.** Streamed with Sunshine, a pointer macOS hides while you
+  type can stay hidden until you click ([LizardByte/Sunshine#3433](https://github.com/LizardByte/Sunshine/issues/3433)).
 - **Berkeley Mono** has to be installed, in `~/Library/Fonts`.
 - **`bin/claude-tab`** is for Linux: it uses GNU `base64 -w0`.
 

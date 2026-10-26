@@ -22,7 +22,9 @@ config.pane_focus_follows_mouse = false
 config.swallow_mouse_click_on_pane_focus = true
 config.enable_wayland = true
 config.hyperlink_rules = wezterm.default_hyperlink_rules()
-config.hide_mouse_cursor_when_typing = true
+-- On macOS a pointer hidden while typing can stay hidden in a Sunshine stream
+-- (LizardByte/Sunshine#3433), so the Mac keeps it showing.
+config.hide_mouse_cursor_when_typing = not is_macos
 -- config.front_end = "WebGpu"
 
 -- TUI compatibility (Claude Code, OpenCode, etc.)
