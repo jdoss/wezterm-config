@@ -15,7 +15,7 @@ config.switch_to_last_active_tab_when_closing_tab = true
 config.tab_max_width = 25
 config.pane_focus_follows_mouse = false
 config.swallow_mouse_click_on_pane_focus = true
-config.enable_wayland = false
+config.enable_wayland = true
 config.hyperlink_rules = wezterm.default_hyperlink_rules()
 config.hide_mouse_cursor_when_typing = true
 -- config.front_end = "WebGpu"
@@ -25,11 +25,18 @@ config.enable_kitty_keyboard = true      -- Better key reporting for TUIs
 config.enable_csi_u_key_encoding = false -- Disable CSI u to avoid escape sequences for modified keys
 config.scrollback_lines = 10000          -- More scrollback for long sessions
 
--- RESIZE without TITLE removes the title bar on GNOME.
-config.window_decorations="RESIZE"
--- config.integrated_title_buttons = { 'Hide', 'Maximize', 'Close' }
--- config.window_decorations="TITLE|RESIZE"
--- integrated_title_button_style = "Gnome"
+-- Let COSMIC own all decorations — full SSD title bar with properly placed buttons.
+config.window_decorations = "TITLE|RESIZE"
+
+-- Workaround for wezterm #6318: on Wayland the window overflows the visible
+-- area when maximized/tiled, hiding the bottom row(s). Bottom padding of one
+-- cell gives wezterm fewer rows to render so the prompt stays in the viewport.
+config.window_padding = {
+  left = "1cell",
+  right = "1cell",
+  top = 0,
+  bottom = "1cell",
+}
 
 -- local window_min = ' 󰖰 '
 -- local window_max = ' 󰖯 '
@@ -54,9 +61,9 @@ config.colors = {
 
 -- Font
 -- wezterm ls-fonts --list-system
-config.font = wezterm.font("Source Code Pro", {weight="Regular", stretch="Normal", style="Normal"})
+config.font = wezterm.font("Berkeley Mono", {weight="Regular", stretch="Normal", style="Normal"})
 config.font_size = 12.0
-config.line_height = 1
+config.line_height = 1.0
 config.window_frame = {
   -- The font used in the tab bar.
   -- Roboto Bold is the default; this font is bundled
@@ -139,6 +146,38 @@ config.keys = {
         { id = "", label = "  ALT+SHIFT+E / Q       Next/previous workspace" },
         { id = "", label = "  ALT+SHIFT+T           New workspace" },
         { id = "", label = "  ALT+SHIFT+R           Rename workspace" },
+        { id = "", label = "── SHELL: COMPLETION ─────────────────────────" },
+        { id = "", label = "  TAB                   Accept next word of ghost suggestion" },
+        { id = "", label = "  RIGHT/END/CTRL+E      Accept full ghost suggestion" },
+        { id = "", label = "  ALT+I                 dabbrev-expand (complete from history/buffer)" },
+        { id = "", label = "  CTRL+T                fzf file picker (insert paths at cursor)" },
+        { id = "", label = "  CTRL+R                fzf history search" },
+        { id = "", label = "  ALT+G                 fzf cd into subdirectory" },
+        { id = "", label = "  **<TAB>               fzf completion trigger (e.g. vim **<TAB>)" },
+        { id = "", label = "── SHELL: EDITING ────────────────────────────" },
+        { id = "", label = "  UP / DOWN             Prefix-aware history search" },
+        { id = "", label = "  ESC                   Clear current input (discard-line)" },
+        { id = "", label = "  CTRL+X CTRL+E         Edit current command in $EDITOR" },
+        { id = "", label = "  ALT+BACKSPACE         Kill word backward (path-aware, breaks on /)" },
+        { id = "", label = "  CTRL+W                Kill word backward (to whitespace)" },
+        { id = "", label = "  ALT+H                 Kill word backward (alphanumeric word)" },
+        { id = "", label = "  ALT+F / ALT+B         Move forward / backward one word" },
+        { id = "", label = "  ALT+U                 Uppercase next word" },
+        { id = "", label = "  ALT+.                 Insert last argument from previous command" },
+        { id = "", label = "  ALT+Y                 Yank pop (cycle through paste history)" },
+        { id = "", label = "── SHELL: DIR STACK ──────────────────────────" },
+        { id = "", label = "  d<space>              List dir stack (sabbrev → dirs -v)" },
+        { id = "", label = "  ff<space>             fzf-pick from dir stack and cd (sabbrev)" },
+        { id = "", label = "  pushd <path>          cd and push current dir onto stack" },
+        { id = "", label = "  popd                  Pop top of stack (cd back one)" },
+        { id = "", label = "  cd ~N                 Jump to stack entry N (no removal)" },
+        { id = "", label = "── SHELL: FZF-GIT (in git repo) ──────────────" },
+        { id = "", label = "  CTRL+G CTRL+F         Pick files (modified/untracked)" },
+        { id = "", label = "  CTRL+G CTRL+B         Pick branches" },
+        { id = "", label = "  CTRL+G CTRL+T         Pick tags" },
+        { id = "", label = "  CTRL+G CTRL+H         Pick commit hashes" },
+        { id = "", label = "  CTRL+G CTRL+S         Pick stashes" },
+        { id = "", label = "  CTRL+G CTRL+W         Pick worktrees" },
       },
     },
   },
@@ -152,6 +191,7 @@ config.keys = {
 
   -- Misc
   { key = 'V', mods = 'SHIFT|CTRL', action = act.PasteFrom 'Clipboard' },
+  { key = 'Insert', mods = 'SHIFT', action = act.PasteFrom 'Clipboard' },
   { key = '0', mods= 'SUPER', action = act.ResetFontSize },
 
   -- Pane Movement
